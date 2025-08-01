@@ -4,11 +4,10 @@ const clean = require('postcss-clean')
 const webpack = require('webpack')
 const pkg = require('../package.json')
 const path = require('path')
+const ESLintPlugin = require('eslint-webpack-plugin')
 
 process.traceDeprecation = true
 
-const nodeModDir = path.resolve('./node_modules/') + '/'
-const srcDir = path.resolve('./src') + '/'
 const banner = pkg.name + ' v' + pkg.version + ' ' + pkg.homepage
 
 const postcssLoader = {
@@ -17,7 +16,7 @@ const postcssLoader = {
     plugins: [
       prefixer({
         prefix: '_',
-        ignore: [/luna-console/, /luna-object-viewer/, /luna-notification/],
+        ignore: [/luna-*/],
       }),
       autoprefixer,
       clean(),
@@ -25,19 +24,27 @@ const postcssLoader = {
   },
 }
 
-const cssMinifierLoader = {
-  loader: path.resolve(__dirname, './loaders/css-minifier-loader'),
-  options: {},
+const rawLoader = {
+  loader: 'raw-loader',
+  options: {
+    esModule: false,
+  },
 }
 
 module.exports = {
   entry: './src/index',
   resolve: {
     symlinks: false,
+    alias: {
+      axios: path.resolve(__dirname, '../src/lib/empty.js'),
+      micromark: path.resolve(__dirname, '../src/lib/micromark.js'),
+    },
   },
   devServer: {
-    contentBase: './test',
-    port: 3000,
+    static: {
+      directory: path.join(__dirname, '../test'),
+    },
+    port: 8080,
   },
   output: {
     path: path.resolve(__dirname, '../dist'),
@@ -49,11 +56,24 @@ module.exports = {
     rules: [
       {
         test: /\.js$/,
-        exclude: /node_modules|index\.js/,
+        include: [
+          path.resolve(__dirname, '../src'),
+          path.resolve(__dirname, '../node_modules/luna-console'),
+          path.resolve(__dirname, '../node_modules/luna-modal'),
+          path.resolve(__dirname, '../node_modules/luna-tab'),
+          path.resolve(__dirname, '../node_modules/luna-data-grid'),
+          path.resolve(__dirname, '../node_modules/luna-object-viewer'),
+          path.resolve(__dirname, '../node_modules/luna-dom-viewer'),
+          path.resolve(__dirname, '../node_modules/luna-text-viewer'),
+          path.resolve(__dirname, '../node_modules/luna-setting'),
+          path.resolve(__dirname, '../node_modules/luna-box-model'),
+          path.resolve(__dirname, '../node_modules/luna-notification'),
+        ],
         use: [
           {
             loader: 'babel-loader',
             options: {
+              sourceType: 'unambiguous',
               presets: ['@babel/preset-env'],
               plugins: [
                 '@babel/plugin-transform-runtime',
@@ -61,50 +81,24 @@ module.exports = {
               ],
             },
           },
-          'eslint-loader',
         ],
       },
       {
         test: /\.scss$/,
-        loaders: [
-          cssMinifierLoader,
+        use: [
           'css-loader',
           postcssLoader,
-          'sass-loader',
+          { loader: 'sass-loader', options: { api: 'modern' } },
         ],
       },
       {
         test: /\.css$/,
-        loaders: [cssMinifierLoader, 'css-loader', postcssLoader],
+        exclude: /luna-dom-highlighter/,
+        use: ['css-loader', postcssLoader],
       },
-      // https://github.com/wycats/handlebars.js/issues/1134
       {
-        test: /\.hbs$/,
-        use: [
-          {
-            loader: path.resolve(
-              __dirname,
-              './loaders/handlebars-minifier-loader.js'
-            ),
-            options: {},
-          },
-          {
-            loader: nodeModDir + 'handlebars-loader/index.js',
-            options: {
-              runtime: srcDir + 'lib/handlebars.js',
-              knownHelpers: ['class', 'repeat', 'concat'],
-              precompileOptions: {
-                knownHelpersOnly: true,
-              },
-            },
-          },
-          {
-            loader: 'html-minifier-loader',
-            options: {
-              ignoreCustomFragments: [/\{\{\{[^}]+\}\}\}/, /\{\{[^}]+\}\}/],
-            },
-          },
-        ],
+        test: /luna-dom-highlighter\.css$/,
+        use: [rawLoader],
       },
     ],
   },
@@ -113,5 +107,6 @@ module.exports = {
     new webpack.DefinePlugin({
       VERSION: '"' + pkg.version + '"',
     }),
+    new ESLintPlugin(),
   ],
 }

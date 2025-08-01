@@ -1,4 +1,7 @@
-import { detectBrowser, detectOs, escape } from '../lib/util'
+import detectBrowser from 'licia/detectBrowser'
+import detectOs from 'licia/detectOs'
+import escape from 'licia/escape'
+import map from 'licia/map'
 
 const browser = detectBrowser()
 
@@ -35,9 +38,44 @@ export default [
     ].join(''),
   },
   {
+    name: 'Sponsor this Project',
+    val() {
+      return (
+        '<table><tbody>' +
+        map(
+          [
+            {
+              name: 'Open Collective',
+              link: 'https://opencollective.com/eruda',
+            },
+            {
+              name: 'Ko-fi',
+              link: 'https://ko-fi.com/surunzi',
+            },
+            {
+              name: 'Wechat Pay',
+              link: 'https://surunzi.com/wechatpay.html',
+            },
+          ],
+          (item) => {
+            return `<tr><td>${
+              item.name
+            }</td><td><a rel="noreferrer noopener" href="${
+              item.link
+            }" target="_blank">${item.link.replace(
+              'https://',
+              ''
+            )}</a></td></tr>`
+          }
+        ).join(' ') +
+        '</tbody></table>'
+      )
+    },
+  },
+  {
     name: 'About',
     val:
-      '<a href="https://github.com/liriliri/eruda" target="_blank">Eruda v' +
+      '<a href="https://eruda.liriliri.io" target="_blank">Eruda v' +
       VERSION +
       '</a>',
   },
